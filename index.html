@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d6e64">
+<title>Tindahan — POS, Inventory & Utang Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f2f5f4;
+  --panel: #ffffff;
+  --ink: #14232b;
+  --mute: #62767d;
+  --line: #d8e2e0;
+  --teal: #0d6e64;
+  --teal-hover: #0a564e;
+  --teal-ink: #ffffff;
+  --teal-bg: #e6f4f2;
+  --gold: #d97706;
+  --gold-bg: #fef3c7;
+  --red: #dc2626;
+  --redbg: #fee2e2;
+  --green: #15803d;
+  --green-bg: #dcfce7;
+  --shadow: 0 4px 18px rgba(15,35,43,0.06);
+  --radius: 14px;
+}
+[data-theme="dark"] {
+  --bg: #0c1518;
+  --panel: #142227;
+  --ink: #e6f0ee;
+  --mute: #8ca3aa;
+  --line: #22373f;
+  --teal: #2dd4bf;
+  --teal-hover: #14b8a6;
+  --teal-ink: #042f2e;
+  --teal-bg: #0f3735;
+  --gold: #fbbf24;
+  --gold-bg: #362909;
+  --red: #f87171;
+  --redbg: #3a1515;
+  --green: #4ade80;
+  --green-bg: #14351e;
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+  color-scheme: dark;
+}
+*,*::before,*::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.5 "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.wrap { max-width: 1060px; margin: 0 auto; padding: 16px; }
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.brand h1 { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+.brand h1 small { font-size: 13px; font-weight: 500; color: var(--mute); display: block; letter-spacing: 0; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+nav {
+  display: flex;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+nav button {
+  border: 0;
+  background: none;
+  color: var(--mute);
+  font: 600 14px inherit;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+nav button[aria-selected="true"] { background: var(--teal); color: var(--teal-ink); }
+nav button:hover:not([aria-selected="true"]) { color: var(--ink); background: rgba(0,0,0,0.03); }
+.badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 99px; }
+
+/* Panels and Grids */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+.panel-head h2 { font-size: 17px; font-weight: 700; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.stat span { color: var(--mute); font-size: 13px; font-weight: 500; }
+.stat b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; }
+.stat.big { background: var(--teal); color: var(--teal-ink); border-color: var(--teal); }
+.stat.big span { color: rgba(255,255,255,0.85); }
+.stat.warn b { color: var(--gold); }
+.stat.alert b { color: var(--red); }
+.cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+@media (max-width: 840px) { .cols { grid-template-columns: 1fr; } }
+
+/* Inputs and Buttons */
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+label { display: flex; flex-direction: column; font-size: 13px; font-weight: 500; color: var(--mute); gap: 5px; flex: 1; min-width: 120px; }
+input, select, textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 12px;
+  width: 100%;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-bg); }
+.btn {
+  font: 600 14px inherit;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 16px;
+  cursor: pointer;
+  background: var(--teal);
+  color: var(--teal-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--teal-hover); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn.ghost:hover:not(:disabled) { background: rgba(0,0,0,0.04); }
+.btn.sm { padding: 5px 10px; font-size: 13px; border-radius: 7px; }
+.btn.del { background: transparent; color: var(--red); border: 1px solid var(--line); }
+.btn.del:hover { background: var(--redbg); border-color: var(--red); }
+.btn.success { background: var(--green); color: #fff; }
+
+/* Filter Pills */
+.filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+.pill-btn {
+  background: var(--bg);
+  color: var(--mute);
+  border: 1px solid var(--line);
+  font: 600 12px inherit;
+  padding: 4px 12px;
+  border-radius: 99px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pill-btn.active { background: var(--teal); color: var(--teal-ink); border-color: var(--teal); }
+
+/* POS Product Grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.item-card {
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 10px;
+  cursor: pointer;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 90px;
+  transition: border-color 0.15s, transform 0.05s;
+}
+.item-card:hover:not(:disabled) { border-color: var(--teal); transform: translateY(-1px); }
+.item-card:disabled { opacity: 0.4; cursor: not-allowed; }
+.item-card b { font-size: 14px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item-card .meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+.item-card .pr { font-weight: 700; color: var(--teal); }
+.item-card .st { font-size: 11px; color: var(--mute); }
+.item-card.lowstock { border-color: var(--gold); }
+.item-card.nostock { border-color: var(--red); }
+
+/* Cart */
+.cart-list { max-height: 280px; overflow-y: auto; margin-bottom: 12px; }
+.cartline { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.cartline .info { flex: 1; }
+.cartline .info small { color: var(--mute); display: block; font-size: 12px; }
+.cart-ctrl { display: flex; align-items: center; gap: 6px; }
+.cart-ctrl b { min-width: 22px; text-align: center; }
+.total-box { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 12px 0; }
+.total-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; color: var(--mute); }
+.total-row.grand { font-size: 22px; font-weight: 800; color: var(--ink); margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+
+/* Payment Options */
+.pay-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.pay-btn {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px;
+  font: 600 13px inherit;
+  color: var(--mute);
+  cursor: pointer;
+  text-align: center;
+}
+.pay-btn.selected { background: var(--teal-bg); border-color: var(--teal); color: var(--teal); }
+.quick-cash { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.chg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; font-weight: 600; text-align: center; color: var(--mute); }
+.chg.ok { background: var(--green-bg); border-color: var(--green); color: var(--green); font-size: 18px; font-weight: 800; }
+.chg.short { background: var(--redbg); border-color: var(--red); color: var(--red); }
+
+/* Tables & Lists */
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 540px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--mute); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+td.num, th.num { text-align: right; }
+tr.lowrow td:nth-child(4) { color: var(--red); font-weight: 700; }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); color: var(--mute); }
+.tag.utang { background: var(--redbg); border-color: var(--red); color: var(--red); }
+.tag.gcash { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
+.tag.cash { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+/* Chart Bars */
+.bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 10px; margin-top: 10px; }
+.bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; font-size: 11px; color: var(--mute); gap: 4px; }
+.bar i { width: 100%; background: var(--teal); border-radius: 5px 5px 0 0; min-height: 3px; transition: height 0.3s; }
+.bar.today i { background: var(--gold); }
+.bar em { font-style: normal; font-weight: 700; font-size: 11px; color: var(--ink); white-space: nowrap; }
+
+/* History & Utang item lists */
+.list-item { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.list-item:last-child { border: 0; }
+.empty { color: var(--mute); text-align: center; padding: 28px 0; font-size: 14px; }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  padding: 20px;
+}
+.receipt-paper {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+  font-size: 12px;
+  margin: 14px 0;
+  max-height: 320px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 200;
+}
+.toast.show { opacity: 1; }
+
+[hidden] { display: none !important; }
+
+@media print {
+  body * { visibility: hidden; }
+  #receiptModal, #receiptModal * { visibility: visible; }
+  #receiptModal { position: absolute; left: 0; top: 0; width: 100%; background: none; }
+  .modal { box-shadow: none; border: 0; max-width: 100%; padding: 0; }
+  .modal-actions { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1 id="shopTitleHeader">🏪 Tindahan <small>Sari-Sari Store POS & Tracker</small></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn ghost sm" id="themeBtn" title="Toggle theme">🌓 Theme</button>
+      <nav role="tablist" id="nav">
+        <button role="tab" data-v="dash" aria-selected="true">📊 Dashboard</button>
+        <button role="tab" data-v="sale" aria-selected="false">🛒 Bagong Benta</button>
+        <button role="tab" data-v="prod" aria-selected="false">📦 Paninda <span id="lowCountBadge" class="badge" hidden>0</span></button>
+        <button role="tab" data-v="utang" aria-selected="false">📒 Utang <span id="utangBadge" class="badge" hidden>0</span></button>
+        <button role="tab" data-v="hist" aria-selected="false">📜 History</button>
+        <button role="tab" data-v="sett" aria-selected="false">⚙️ Settings</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section id="dash">
+    <div class="stats">
+      <div class="stat big"><span id="sTodayLabel">Sales today</span><b id="sToday">₱0</b></div>
+      <div class="stat"><span id="sProfitLabel">Est. Gross Profit (Tubò)</span><b id="sProfit" style="color:var(--green)">₱0</b></div>
+      <div class="stat warn"><span>Unpaid Utang (Pautang)</span><b id="sUtang">₱0</b></div>
+      <div class="stat alert"><span>Low / Out of Stock</span><b id="sLow">0</b></div>
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Huling 7 Araw (Last 7 Days)</h2>
+            <small style="color:var(--mute)">Daily revenue</small>
+          </div>
+          <div class="bars" id="bars"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Pinakamabenta (Top Sellers Today)</h2>
+          </div>
+          <div id="topList"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Nauubos na Paninda (Low Stock)</h2>
+          </div>
+          <ul class="empty" id="lowList" style="list-style:none;padding:0;margin:0"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEW SALE (POS) -->
+  <section id="sale" hidden>
+    <div class="cols">
+      <div>
+        <div class="panel">
+          <div class="row" style="margin-bottom:10px">
+            <label style="flex:2">Mabilisang Hanap (Search Product)
+              <input id="posSearch" placeholder="Type pandesal, kape, coke...">
+            </label>
+          </div>
+          <div class="filters" id="posCatPills"></div>
+          <div class="grid" id="posGrid"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Kasalukuyang Benta (Cart)</h2>
+            <button class="btn ghost sm" id="cartClear">Clear</button>
+          </div>
+          <div class="cart-list" id="cartItems"></div>
+
+          <div class="total-box">
+            <div class="total-row"><span>Subtotal</span><span id="cSub">₱0</span></div>
+            <div class="total-row grand"><span>TOTAL</span><span id="cTotal">₱0</span></div>
+          </div>
+
+          <!-- Payment Mode -->
+          <div style="margin-bottom:10px">
+            <span style="font-size:12px;font-weight:600;color:var(--mute)">Paraan ng Bayad (Payment Method):</span>
+            <div class="pay-methods">
+              <button class="pay-btn selected" data-method="Cash">💵 Cash</button>
+              <button class="pay-btn" data-method="GCash">📱 GCash/Maya</button>
+              <button class="pay-btn" data-method="Utang">📝 Utang</button>
+            </div>
+          </div>
+
+          <!-- Cash Section -->
+          <div id="payCashBlock">
+            <label>Halagang Binayad (₱)
+              <input id="payInput" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0">
+            </label>
+            <div class="quick-cash" id="quickCash">
+              <button class="btn ghost sm" data-q="exact">Exact</button>
+              <button class="btn ghost sm" data-q="20">₱20</button>
+              <button class="btn ghost sm" data-q="50">₱50</button>
+              <button class="btn ghost sm" data-q="100">₱100</button>
+              <button class="btn ghost sm" data-q="500">₱500</button>
+              <button class="btn ghost sm" data-q="1000">₱1000</button>
+            </div>
+            <div class="chg" id="chgMsg">Ilagay ang bayad para lumabas ang sukli.</div>
+          </div>
+
+          <!-- Utang Section -->
+          <div id="payUtangBlock" hidden>
+            <label>Pangalan ng May Utang (Customer Name) *
+              <input id="utangCustomer" placeholder="Hal: Aling Marites">
+            </label>
+            <div style="font-size:12px;color:var(--mute);margin-top:6px">
+              Maitala ito sa <b>Listahan ng Utang</b> na may balanse.
+            </div>
+          </div>
+
+          <button class="btn" id="btnCheckout" style="width:100%;margin-top:12px;padding:14px;font-size:16px" disabled>
+            I-record ang Benta
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS / INVENTORY -->
+  <section id="prod" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="formTitle">Magdagdag ng Paninda (Add Product)</h2>
+      </div>
+      <div class="row">
+        <label style="flex:2">Pangalan ng Produkto
+          <input id="pName" placeholder="Hal: Bear Brand Powder 33g">
+        </label>
+        <label>Kategorya
+          <select id="pCat">
+            <option value="General">General</option>
+            <option value="Beverages">Drinks & Kape</option>
+            <option value="Snacks">Snacks & Biscuits</option>
+            <option value="Canned">Canned Goods</option>
+            <option value="Condiments">Balsam & Seasonings</option>
+            <option value="Toiletries">Sabon & Toiletries</option>
+            <option value="Rice & Bakery">Bigas & Tinapay</option>
+            <option value="Cigarettes">Cigarettes / Others</option>
+          </select>
+        </label>
+        <label>Puhunan / Cost (₱)
+          <input id="pCost" type="number" min="0" step="0.25" placeholder="10.00">
+        </label>
+        <label>Benta / Price (₱)
+          <input id="pPrice" type="number" min="0" step="0.25" placeholder="12.00">
+        </label>
+        <label>Stock Qty
+          <input id="pStock" type="number" min="0" step="1" placeholder="24">
+        </label>
+        <label>Alert at (Min)
+          <input id="pMin" type="number" min="0" step="1" value="5">
+        </label>
+        <button class="btn" id="pSave">Save Product</button>
+        <button class="btn ghost" id="pCancel" hidden>Cancel</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Listahan ng Imbentaryo</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost sm" id="btnDownloadCSV">📥 Export CSV</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <label style="flex:2">Filter / Search
+          <input id="prodFilterSearch" placeholder="Hanapin ayon sa pangalan...">
+        </label>
+        <label>Kategorya
+          <select id="prodFilterCat"><option value="">Lahat ng Kategorya</option></select>
+        </label>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Produkto</th>
+              <th>Kategorya</th>
+              <th class="num">Puhunan</th>
+              <th class="num">Benta</th>
+              <th class="num">Tubò</th>
+              <th class="num">Stock</th>
+              <th class="num">Aksyon</th>
+            </tr>
+          </thead>
+          <tbody id="prodTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- UTANG (CREDIT LEDGER) -->
+  <section id="utang" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Listahan ng Pautang (Customer Credit Ledger)</h2>
+        <button class="btn sm" id="btnNewUtangEntry">+ Manual na Utang</button>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Pangalan ng Customer</th>
+              <th>Huling Transaksyon</th>
+              <th class="num">Kabuuang Utang</th>
+              <th class="num">Aksyon</th>
+            </tr>
+          </thead>
+          <tbody id="utangTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SALES HISTORY -->
+  <section id="hist" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Kasaysayan ng mga Benta (Sales History) <span id="histSum" style="font-weight:400;color:var(--mute)"></span></h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost sm" id="btnExportSalesCSV">📥 Export Sales CSV</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <label style="flex:2">Search Sales
+          <input id="histSearch" placeholder="Search by product name, receipt ID, or customer...">
+        </label>
+        <label>Payment Mode
+          <select id="histFilterPay">
+            <option value="">Lahat</option>
+            <option value="Cash">Cash</option>
+            <option value="GCash">GCash</option>
+            <option value="Utang">Utang</option>
+          </select>
+        </label>
+      </div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS & BACKUP -->
+  <section id="sett" hidden>
+    <div class="cols">
+      <div class="panel">
+        <div class="panel-head"><h2>Impormasyon ng Tindahan (Store Details)</h2></div>
+        <div class="row" style="flex-direction:column;align-items:stretch">
+          <label>Pangalan ng Tindahan
+            <input id="setStoreName" value="Tindahan Sari-Sari Store">
+          </label>
+          <label>Slogan / Address
+            <input id="setStoreSub" value="Brgy. Mabini, Manila • 0917-000-0000">
+          </label>
+          <label>Pangwakas na Mensahe sa Resibo (Receipt Footer)
+            <input id="setStoreFooter" value="Salamat sa suki! Balik po kayo muli.">
+          </label>
+          <button class="btn" id="btnSaveStoreInfo" style="margin-top:8px">I-save ang Detalye</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Backup at Pagbawi ng Datos (Backup & Restore)</h2></div>
+        <p style="font-size:13px;color:var(--mute);margin-top:0">
+          Ang iyong datos ay ligtas na nakatabi sa iyong browser memory. I-download ang backup paminsan-minsan upang hindi mawala ang listahan ng iyong benta at paninda.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn ghost" id="btnDownloadBackup">💾 I-download ang Full Backup (JSON)</button>
+          <label class="btn ghost" style="text-align:center;cursor:pointer">
+            📂 Mag-restore mula sa Backup File
+            <input type="file" id="importFileInput" accept=".json" style="display:none">
+          </label>
+          <hr style="border:0;border-top:1px solid var(--line);margin:8px 0">
+          <button class="btn del sm" id="btnResetData">⚠️ I-reset at Ibalik sa Demo Data</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-backdrop" id="receiptModal">
+  <div class="modal">
+    <div class="panel-head" style="margin-bottom:6px">
+      <h2>Resibo ng Benta</h2>
+      <button class="btn ghost sm" id="btnCloseReceipt">✕</button>
+    </div>
+    <div class="receipt-paper" id="receiptPaper"></div>
+    <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn ghost sm" id="btnCopyReceipt">📋 Copy Text</button>
+      <button class="btn sm" id="btnPrintReceipt">🖨️ Print Receipt</button>
+    </div>
+  </div>
+</div>
+
+<!-- UTANG PAYMENT MODAL -->
+<div class="modal-backdrop" id="utangPayModal">
+  <div class="modal">
+    <div class="panel-head">
+      <h2 id="utangModalTitle">Bayad sa Utang</h2>
+      <button class="btn ghost sm" id="btnCloseUtangModal">✕</button>
+    </div>
+    <div id="utangModalContent">
+      <p style="margin:0 0 10px;font-size:14px;color:var(--mute)" id="utangModalDesc"></p>
+      <label>Halagang Ibinayad (₱)
+        <input id="utangPayAmount" type="number" min="1" step="0.5" placeholder="0">
+      </label>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn" id="btnConfirmUtangPay" style="flex:1">I-record ang Bayad</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL UTANG MODAL -->
+<div class="modal-backdrop" id="manualUtangModal">
+  <div class="modal">
+    <div class="panel-head">
+      <h2>Magtala ng Bagong Utang</h2>
+      <button class="btn ghost sm" id="btnCloseManualUtang">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label>Pangalan ng May Utang
+        <input id="manUtangName" placeholder="Hal: Mang Boyet">
+      </label>
+      <label>Halaga (₱)
+        <input id="manUtangAmount" type="number" min="1" step="1" placeholder="150">
+      </label>
+      <label>Detalye / Tala (Note)
+        <input id="manUtangNote" placeholder="Hal: 2 kilong bigas at 1 sardinas">
+      </label>
+      <button class="btn" id="btnSaveManualUtang" style="margin-top:6px">I-record sa Utang</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+
+var DB_KEY = "tindahan_db_v2";
+
+var peso = function(n){
+  return "₱" + Number(n || 0).toLocaleString("en-PH", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+};
+var pesoInt = function(n){
+  return "₱" + Math.round(Number(n || 0)).toLocaleString("en-PH");
+};
+var $ = function(id){ return document.getElementById(id); };
+
+function esc(s){
+  var d = document.createElement("div");
+  d.textContent = s || "";
+  return d.innerHTML;
+}
+
+function uid(){
+  return Math.random().toString(36).slice(2, 9);
+}
+
+function dayKey(t){
+  var d = new Date(t);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function seedData(){
+  var P = [
+    ["Pandesal (10 pcs)", "Rice & Bakery", 22, 30, 45, 10],
+    ["Instant Coffee 3-in-1", "Beverages", 6.5, 9, 120, 25],
+    ["Bottled Water 500ml", "Beverages", 9, 15, 60, 15],
+    ["Eggs (tray of 30)", "General", 225, 270, 7, 3],
+    ["Sinandomeng Rice 1kg", "Rice & Bakery", 48, 56, 40, 10],
+    ["Cooking Oil 250ml", "Condiments", 32, 42, 6, 8],
+    ["Sardines in Tomato 155g", "Canned", 21, 28, 48, 12],
+    ["Soy Sauce (Toyo) 200ml", "Condiments", 17, 24, 5, 8],
+    ["Corned Beef 150g", "Canned", 35, 45, 20, 6],
+    ["Laundry Detergent Sachet", "Toiletries", 10, 14, 80, 20],
+    ["Bath Soap Bar 90g", "Toiletries", 28, 38, 14, 5],
+    ["Chippy / Corn Chips", "Snacks", 9, 13, 35, 10]
+  ];
+
+  var prods = P.map(function(p){
+    return { id: uid(), name: p[0], category: p[1], cost: p[2], price: p[3], stock: p[4], min: p[5] };
+  });
+
+  var sales = [];
+  var now = Date.now();
+  for(var d = 6; d >= 0; d--){
+    var txCount = 4 + Math.floor(Math.random() * 4);
+    for(var k = 0; k < txCount; k++){
+      var itemA = prods[Math.floor(Math.random() * prods.length)];
+      var itemB = prods[Math.floor(Math.random() * prods.length)];
+      var q1 = 1 + Math.floor(Math.random() * 2);
+      var q2 = itemA.id !== itemB.id ? (1 + Math.floor(Math.random() * 2)) : 0;
+
+      var items = [{ id: itemA.id, name: itemA.name, qty: q1, price: itemA.price, cost: itemA.cost }];
+      if(q2 > 0) items.push({ id: itemB.id, name: itemB.name, qty: q2, price: itemB.price, cost: itemB.cost });
+
+      var tot = items.reduce(function(acc, x){ return acc + (x.price * x.qty); }, 0);
+      var paidMethods = ["Cash", "Cash", "Cash", "GCash"];
+      var m = paidMethods[Math.floor(Math.random() * paidMethods.length)];
+
+      sales.push({
+        id: "TIN-" + Math.floor(100000 + Math.random() * 900000),
+        t: now - (d * 864e5) - (k * 42e5),
+        items: items,
+        total: tot,
+        paid: tot,
+        method: m,
+        customer: ""
+      });
+    }
+  }
+
+  var debts = [
+    {
+      id: uid(),
+      customer: "Aling Marites",
+      balance: 145,
+      updated: now - 36e5 * 12,
+      logs: [
+        { t: now - 36e5 * 12, type: "charge", amount: 145, note: "Rice 2kg & Sardinas" }
+      ]
+    },
+    {
+      id: uid(),
+      customer: "Mang Boyet",
+      balance: 60,
+      updated: now - 36e5 * 24,
+      logs: [
+        { t: now - 36e5 * 24, type: "charge", amount: 110, note: "Kape & Asukal" },
+        { t: now - 36e5 * 8, type: "payment", amount: 50, note: "Partial bayad" }
+      ]
+    }
+  ];
+
+  return {
+    store: {
+      name: "Tindahan Sari-Sari Store",
+      sub: "Brgy. Mabini, Manila • 0917-000-0000",
+      footer: "Salamat sa suki! Balik po kayo muli."
+    },
+    products: prods,
+    sales: sales,
+    debts: debts
+  };
+}
+
+var DB;
+try {
+  DB = JSON.parse(localStorage.getItem(DB_KEY) || "null");
+} catch(e){ DB = null; }
+
+if(!DB || !DB.products) {
+  DB = seedData();
+  saveDB();
+}
+
+function saveDB(){
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(DB));
+  } catch(e){
+    console.error("Storage save failed", e);
+  }
+}
+
+function toast(m){
+  var t = $("toast");
+  t.textContent = m;
+  t.className = "toast show";
+  clearTimeout(toast.h);
+  toast.h = setTimeout(function(){ t.className = "toast"; }, 2200);
+}
+
+var cart = {};
+var selectedPayMethod = "Cash";
+var editingProductId = null;
+var activeCategoryFilter = "ALL";
+var activeUtangDebtorId = null;
+
+/* NAVIGATION */
+function navigate(view){
+  ["dash", "sale", "prod", "utang", "hist", "sett"].forEach(function(v){
+    var el = $(v);
+    if(el) el.hidden = (v !== view);
+  });
+  [].forEach.call($("nav").children, function(b){
+    b.setAttribute("aria-selected", b.dataset.v === view);
+  });
+  renderView();
+}
+
+$("nav").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(b && b.dataset.v) navigate(b.dataset.v);
+});
+
+/* THEME */
+function initTheme(){
+  var saved = localStorage.getItem("tindahan_theme") || "light";
+  document.documentElement.setAttribute("data-theme", saved);
+}
+$("themeBtn").addEventListener("click", function(){
+  var curr = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", curr);
+  localStorage.setItem("tindahan_theme", curr);
+});
+initTheme();
+
+/* DASHBOARD */
+function renderDashboard(){
+  var today = dayKey(Date.now());
+  var sumToday = 0, profitToday = 0;
+  var topMap = {};
+
+  DB.sales.forEach(function(s){
+    if(dayKey(s.t) === today){
+      sumToday += s.total;
+      s.items.forEach(function(it){
+        var c = it.cost != null ? it.cost : (it.price * 0.75);
+        profitToday += ((it.price - c) * it.qty);
+        topMap[it.name] = (topMap[it.name] || 0) + it.qty;
+      });
+    }
+  });
+
+  $("sToday").textContent = peso(sumToday);
+  $("sProfit").textContent = peso(profitToday);
+
+  var totalUtang = DB.debts.reduce(function(acc, d){ return acc + (d.balance > 0 ? d.balance : 0); }, 0);
+  $("sUtang").textContent = peso(totalUtang);
+
+  var lowProds = DB.products.filter(function(p){ return p.stock <= p.min; });
+  $("sLow").textContent = lowProds.length;
+
+  $("lowCountBadge").textContent = lowProds.length;
+  $("lowCountBadge").hidden = lowProds.length === 0;
+
+  var pendingDebtsCount = DB.debts.filter(function(d){ return d.balance > 0; }).length;
+  $("utangBadge").textContent = pendingDebtsCount;
+  $("utangBadge").hidden = pendingDebtsCount === 0;
+
+  var days = [];
+  for(var i = 6; i >= 0; i--){
+    var t = Date.now() - (i * 864e5);
+    days.push({
+      key: dayKey(t),
+      label: new Date(t).toLocaleDateString("en-PH", {weekday:"short"}),
+      total: 0
+    });
+  }
+  DB.sales.forEach(function(s){
+    var k = dayKey(s.t);
+    days.forEach(function(d){
+      if(d.key === k) d.total += s.total;
+    });
+  });
+
+  var maxVal = Math.max.apply(null, days.map(function(d){ return d.total; })) || 1;
+  $("bars").innerHTML = days.map(function(d, idx){
+    var isToday = (idx === 6);
+    var h = Math.round((d.total / maxVal) * 110);
+    return '<div class="bar' + (isToday ? ' today' : '') + '">' +
+      '<em>' + (d.total > 0 ? pesoInt(d.total) : '') + '</em>' +
+      '<i style="height:' + Math.max(h, 4) + 'px"></i>' +
+      '<span>' + d.label + '</span>' +
+    '</div>';
+  }).join("");
+
+  var topArr = Object.keys(topMap).map(function(k){ return { name: k, qty: topMap[k] }; });
+  topArr.sort(function(a,b){ return b.qty - a.qty; });
+  topArr = topArr.slice(0, 5);
+
+  if(!topArr.length){
+    $("topList").innerHTML = '<p class="empty">Wala pang benta ngayong araw.</p>';
+  } else {
+    $("topList").innerHTML = topArr.map(function(item){
+      return '<div class="list-item"><span><b>' + esc(item.name) + '</b></span>' +
+        '<span class="tag">' + item.qty + ' naibenta</span></div>';
+    }).join("");
+  }
+
+  if(!lowProds.length){
+    $("lowList").innerHTML = '<li class="empty">Lahat ng paninda ay may sapat na stock! 👍</li>';
+  } else {
+    $("lowList").innerHTML = lowProds.map(function(p){
+      var isOut = p.stock <= 0;
+      return '<li class="list-item">' +
+        '<div><b>' + esc(p.name) + '</b><br><small style="color:var(--mute)">Alert sa ' + p.min + ' piraso</small></div>' +
+        '<span class="tag ' + (isOut ? 'utang' : '') + '">' + (isOut ? 'UBOS NA' : (p.stock + ' natitira')) + '</span>' +
+      '</li>';
+    }).join("");
+  }
+}
+
+/* POS / NEW SALE */
+function getUniqueCategories(){
+  var cats = {};
+  DB.products.forEach(function(p){ if(p.category) cats[p.category] = true; });
+  return Object.keys(cats);
+}
+
+function renderPosCategories(){
+  var cats = ["ALL"].concat(getUniqueCategories());
+  $("posCatPills").innerHTML = cats.map(function(c){
+    var label = c === "ALL" ? "Lahat (All)" : c;
+    var active = (activeCategoryFilter === c) ? " active" : "";
+    return '<button class="pill-btn' + active + '" data-c="' + esc(c) + '">' + esc(label) + '</button>';
+  }).join("");
+}
+
+$("posCatPills").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+  activeCategoryFilter = b.dataset.c;
+  renderPosCategories();
+  renderPosGrid();
+});
+
+function renderPosGrid(){
+  var q = ($("posSearch").value || "").trim().toLowerCase();
+  var filtered = DB.products.filter(function(p){
+    var matchCat = (activeCategoryFilter === "ALL" || p.category === activeCategoryFilter);
+    var matchSearch = !q || p.name.toLowerCase().indexOf(q) > -1 || (p.category && p.category.toLowerCase().indexOf(q) > -1);
+    return matchCat && matchSearch;
+  });
+
+  if(!filtered.length){
+    $("posGrid").innerHTML = '<div style="grid-column:1/-1" class="empty">Walang nahanap na paninda.</div>';
+    return;
+  }
+
+  $("posGrid").innerHTML = filtered.map(function(p){
+    var inCart = cart[p.id] || 0;
+    var rem = p.stock - inCart;
+    var disabled = rem <= 0 ? ' disabled' : '';
+    var cls = 'item-card';
+    if(rem <= 0) cls += ' nostock';
+    else if(rem <= p.min) cls += ' lowstock';
+
+    return '<button class="' + cls + '" data-id="' + p.id + '"' + disabled + '>' +
+      '<b>' + esc(p.name) + '</b>' +
+      '<div class="meta">' +
+        '<span class="pr">' + peso(p.price) + '</span>' +
+        '<span class="st">' + (rem <= 0 ? 'Out of stock' : (rem + ' left')) + '</span>' +
+      '</div>' +
+    '</button>';
+  }).join("");
+}
+
+$("posSearch").addEventListener("input", renderPosGrid);
+
+$("posGrid").addEventListener("click", function(e){
+  var card = e.target.closest(".item-card");
+  if(!card || card.disabled) return;
+  var pid = card.dataset.id;
+  var prod = DB.products.find(function(x){ return x.id === pid; });
+  if(!prod) return;
+
+  var currentInCart = cart[pid] || 0;
+  if(currentInCart < prod.stock){
+    cart[pid] = currentInCart + 1;
+    renderCart();
+    renderPosGrid();
+  } else {
+    toast("Naabot na ang maximum na stock para sa " + prod.name);
+  }
+});
+
+function calculateCartTotal(){
+  var total = 0;
+  Object.keys(cart).forEach(function(pid){
+    var prod = DB.products.find(function(p){ return p.id === pid; });
+    if(prod){
+      total += (prod.price * cart[pid]);
+    }
+  });
+  return total;
+}
+
+function renderCart(){
+  var pids = Object.keys(cart);
+  if(!pids.length){
+    $("cartItems").innerHTML = '<div class="empty">Walang laman ang cart.<br>Pumili ng paninda sa kaliwa.</div>';
+    $("cSub").textContent = peso(0);
+    $("cTotal").textContent = peso(0);
+    $("btnCheckout").disabled = true;
+    updateChangeDisplay();
+    return;
+  }
+
+  var html = "";
+  var grand = 0;
+
+  pids.forEach(function(pid){
+    var p = DB.products.find(function(x){ return x.id === pid; });
+    if(!p) return;
+    var qty = cart[pid];
+    var lineTot = p.price * qty;
+    grand += lineTot;
+
+    html += '<div class="cartline">' +
+      '<div class="info">' +
+        '<b>' + esc(p.name) + '</b>' +
+        '<small>' + peso(p.price) + ' × ' + qty + ' = <b>' + peso(lineTot) + '</b></small>' +
+      '</div>' +
+      '<div class="cart-ctrl">' +
+        '<button class="btn ghost sm" data-m="' + p.id + '" title="Bawas">−</button>' +
+        '<b>' + qty + '</b>' +
+        '<button class="btn ghost sm" data-p="' + p.id + '" title="Dagdag">+</button>' +
+        '<button class="btn del sm" data-del="' + p.id + '" style="margin-left:4px">✕</button>' +
+      '</div>' +
+    '</div>';
+  });
+
+  $("cartItems").innerHTML = html;
+  $("cSub").textContent = peso(grand);
+  $("cTotal").textContent = peso(grand);
+  $("btnCheckout").disabled = false;
+  updateChangeDisplay();
+}
+
+$("cartItems").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+
+  var pid = b.dataset.p || b.dataset.m || b.dataset.del;
+  var prod = DB.products.find(function(x){ return x.id === pid; });
+  if(!prod) return;
+
+  if(b.dataset.p){
+    if(cart[pid] < prod.stock) cart[pid]++;
+    else toast("Sapat na ang natitirang stock!");
+  } else if(b.dataset.m){
+    cart[pid]--;
+    if(cart[pid] <= 0) delete cart[pid];
+  } else if(b.dataset.del){
+    delete cart[pid];
+  }
+  renderCart();
+  renderPosGrid();
+});
+
+$("cartClear").addEventListener("click", function(){
+  if(Object.keys(cart).length === 0) return;
+  cart = {};
+  $("payInput").value = "";
+  renderCart();
+  renderPosGrid();
+});
+
+document.querySelectorAll(".pay-btn").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".pay-btn").forEach(function(b){ b.classList.remove("selected"); });
+    btn.classList.add("selected");
+    selectedPayMethod = btn.dataset.method;
+
+    if(selectedPayMethod === "Cash"){
+      $("payCashBlock").hidden = false;
+      $("payUtangBlock").hidden = true;
+    } else if(selectedPayMethod === "GCash"){
+      $("payCashBlock").hidden = true;
+      $("payUtangBlock").hidden = true;
+    } else if(selectedPayMethod === "Utang"){
+      $("payCashBlock").hidden = true;
+      $("payUtangBlock").hidden = false;
+    }
+    updateChangeDisplay();
+  });
+});
+
+function updateChangeDisplay(){
+  var grand = calculateCartTotal();
+  var payInput = $("payInput");
+  var chgMsg = $("chgMsg");
+
+  if(selectedPayMethod !== "Cash"){
+    chgMsg.textContent = selectedPayMethod === "GCash" ? "Bayad gamit ang GCash / Maya (Exact)" : "Itatala sa Listahan ng Utang.";
+    chgMsg.className = "chg";
+    return;
+  }
+
+  var val = parseFloat(payInput.value);
+  if(isNaN(val) || val <= 0){
+    chgMsg.textContent = "Ilagay ang bayad para lumabas ang sukli.";
+    chgMsg.className = "chg";
+    return;
+  }
+
+  if(val < grand){
+    chgMsg.textContent = "Kulang ng " + peso(grand - val);
+    chgMsg.className = "chg short";
+  } else {
+    chgMsg.textContent = "Sukli: " + peso(val - grand);
+    chgMsg.className = "chg ok";
+  }
+}
+
+$("payInput").addEventListener("input", updateChangeDisplay);
+
+$("quickCash").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+  var q = b.dataset.q;
+  var total = calculateCartTotal();
+  if(q === "exact"){
+    $("payInput").value = total;
+  } else {
+    $("payInput").value = parseFloat(q);
+  }
+  updateChangeDisplay();
+});
+
+$("btnCheckout").addEventListener("click", function(){
+  var cartPids = Object.keys(cart);
+  if(!cartPids.length){
+    toast("Pumili muna ng paninda!");
+    return;
+  }
+
+  var grand = calculateCartTotal();
+  var paidVal = parseFloat($("payInput").value);
+  var customerName = ($("utangCustomer").value || "").trim();
+
+  if(selectedPayMethod === "Cash"){
+    if(isNaN(paidVal) || paidVal < grand){
+      toast("Kulang ang bayad! Total: " + peso(grand));
+      return;
+    }
+  } else if(selectedPayMethod === "Utang"){
+    if(!customerName){
+      toast("Ilagay ang pangalan ng may utang!");
+      $("utangCustomer").focus();
+      return;
+    }
+  }
+
+  var itemsSold = [];
+  cartPids.forEach(function(pid){
+    var p = DB.products.find(function(x){ return x.id === pid; });
+    if(p){
+      p.stock -= cart[pid];
+      itemsSold.push({
+        id: p.id,
+        name: p.name,
+        qty: cart[pid],
+        price: p.price,
+        cost: p.cost != null ? p.cost : (p.price * 0.75)
+      });
+    }
+  });
+
+  var txId = "TIN-" + Math.floor(100000 + Math.random() * 900000);
+  var changeAmt = (selectedPayMethod === "Cash") ? (paidVal - grand) : 0;
+  var actualPaid = (selectedPayMethod === "Utang") ? 0 : ((selectedPayMethod === "GCash") ? grand : paidVal);
+
+  var newSale = {
+    id: txId,
+    t: Date.now(),
+    items: itemsSold,
+    total: grand,
+    paid: actualPaid,
+    change: changeAmt,
+    method: selectedPayMethod,
+    customer: customerName
+  };
+
+  DB.sales.push(newSale);
+
+  if(selectedPayMethod === "Utang"){
+    var debtor = DB.debts.find(function(d){ return d.customer.toLowerCase() === customerName.toLowerCase(); });
+    if(!debtor){
+      debtor = { id: uid(), customer: customerName, balance: 0, updated: Date.now(), logs: [] };
+      DB.debts.push(debtor);
+    }
+    debtor.balance += grand;
+    debtor.updated = Date.now();
+    debtor.logs.push({
+      t: Date.now(),
+      type: "charge",
+      amount: grand,
+      saleId: txId,
+      note: itemsSold.map(function(i){ return i.name + " (" + i.qty + ")"; }).join(", ")
+    });
+  }
+
+  saveDB();
+
+  cart = {};
+  $("payInput").value = "";
+  $("utangCustomer").value = "";
+  renderCart();
+  renderPosGrid();
+
+  openReceipt(newSale);
+  toast("Benta matagumpay na naitala!");
+});
+
+/* RECEIPT MODAL */
+function openReceipt(sale){
+  var dateStr = new Date(sale.t).toLocaleString("en-PH", {
+    year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+  });
+
+  var lines = [];
+  lines.push("================================");
+  lines.push("      " + (DB.store.name || "TINDAHAN").toUpperCase());
+  if(DB.store.sub) lines.push("  " + DB.store.sub);
+  lines.push("================================");
+  lines.push("Resibo: #" + sale.id);
+  lines.push("Petsa : " + dateStr);
+  lines.push("Paraan: " + sale.method + (sale.customer ? " (" + sale.customer + ")" : ""));
+  lines.push("--------------------------------");
+  lines.push("PRODUKTO          QTY    PRESYO");
+  lines.push("--------------------------------");
+
+  sale.items.forEach(function(i){
+    var namePart = i.name.slice(0, 16).padEnd(16, " ");
+    var qtyPart = String(i.qty).padStart(4, " ");
+    var pricePart = (peso(i.price * i.qty)).padStart(10, " ");
+    lines.push(namePart + qtyPart + pricePart);
+  });
+
+  lines.push("--------------------------------");
+  lines.push("KABUUAN (TOTAL):".padEnd(20, " ") + peso(sale.total).padStart(12, " "));
+  if(sale.method === "Cash"){
+    lines.push("BINAYAD:".padEnd(20, " ") + peso(sale.paid).padStart(12, " "));
+    lines.push("SUKLI:".padEnd(20, " ") + peso(sale.change).padStart(12, " "));
+  } else if(sale.method === "Utang"){
+    lines.push("STATUS: UTANG / PAUTANG");
+  }
+  lines.push("================================");
+  if(DB.store.footer) lines.push("  " + DB.store.footer);
+  lines.push("================================");
+
+  $("receiptPaper").textContent = lines.join("\n");
+  $("receiptModal").classList.add("open");
+}
+
+$("btnCloseReceipt").addEventListener("click", function(){
+  $("receiptModal").classList.remove("open");
+});
+$("btnPrintReceipt").addEventListener("click", function(){
+  window.print();
+});
+$("btnCopyReceipt").addEventListener("click", function(){
+  var text = $("receiptPaper").textContent;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      toast("Nakopya ang resibo!");
+    });
+  } else {
+    toast("Hindi ma-copy sa browser na ito");
+  }
+});
+
+/* PRODUCTS / INVENTORY TAB */
+function renderProductCategoriesSelect(){
+  var cats = getUniqueCategories();
+  var sel = $("prodFilterCat");
+  var curr = sel.value;
+  sel.innerHTML = '<option value="">Lahat ng Kategorya</option>' +
+    cats.map(function(c){ return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join("");
+  sel.value = curr;
+}
+
+function renderProductTable(){
+  renderProductCategoriesSelect();
+  var q = ($("prodFilterSearch").value || "").trim().toLowerCase();
+  var catFilter = $("prodFilterCat").value;
+
+  var list = DB.products.filter(function(p){
+    var matchName = !q || p.name.toLowerCase().indexOf(q) > -1;
+    var matchCat = !catFilter || p.category === catFilter;
+    return matchName && matchCat;
+  });
+
+  if(!list.length){
+    $("prodTableBody").innerHTML = '<tr><td colspan="7" class="empty">Walang panindang tumutugma sa filter.</td></tr>';
+    return;
+  }
+
+  $("prodTableBody").innerHTML = list.map(function(p){
+    var isLow = p.stock <= p.min;
+    var c = p.cost != null ? p.cost : 0;
+    var margin = p.price - c;
+
+    return '<tr class="' + (isLow ? 'lowrow' : '') + '">' +
+      '<td><b>' + esc(p.name) + '</b>' + (isLow ? ' <span class="tag utang">Low</span>' : '') + '</td>' +
+      '<td><span class="tag">' + esc(p.category || 'General') + '</span></td>' +
+      '<td class="num">' + peso(c) + '</td>' +
+      '<td class="num">' + peso(p.price) + '</td>' +
+      '<td class="num" style="color:var(--green);font-weight:600">+' + peso(margin) + '</td>' +
+      '<td class="num"><b>' + p.stock + '</b> <button class="btn ghost sm" data-restock="' + p.id + '" title="Quick Restock +10">+10</button></td>' +
+      '<td class="num">' +
+        '<button class="btn ghost sm" data-edit="' + p.id + '">Edit</button> ' +
+        '<button class="btn del sm" data-del="' + p.id + '">Delete</button>' +
+      '</td>' +
+    '</tr>';
+  }).join("");
+}
+
+$("prodFilterSearch").addEventListener("input", renderProductTable);
+$("prodFilterCat").addEventListener("change", renderProductTable);
+
+function resetProductForm(){
+  editingProductId = null;
+  $("pName").value = "";
+  $("pCost").value = "";
+  $("pPrice").value = "";
+  $("pStock").value = "";
+  $("pMin").value = "5";
+  $("formTitle").textContent = "Magdagdag ng Paninda (Add Product)";
+  $("pSave").textContent = "Save Product";
+  $("pCancel").hidden = true;
+}
+
+$("pSave").addEventListener("click", function(){
+  var name = $("pName").value.trim();
+  var cat = $("pCat").value;
+  var cost = parseFloat($("pCost").value) || 0;
+  var price = parseFloat($("pPrice").value);
+  var stock = parseInt($("pStock").value, 10);
+  var min = parseInt($("pMin").value, 10) || 5;
+
+  if(!name || isNaN(price) || isNaN(stock)){
+    toast("Pakilagay ang pangalan, presyo, at stock!");
+    return;
+  }
+
+  if(editingProductId){
+    var prod = DB.products.find(function(p){ return p.id === editingProductId; });
+    if(prod){
+      prod.name = name;
+      prod.category = cat;
+      prod.cost = cost;
+      prod.price = price;
+      prod.stock = stock;
+      prod.min = min;
+      toast("Na-update ang " + name);
+    }
+  } else {
+    DB.products.push({
+      id: uid(),
+      name: name,
+      category: cat,
+      cost: cost,
+      price: price,
+      stock: stock,
+      min: min
+    });
+    toast("Naidagdag ang " + name);
+  }
+
+  saveDB();
+  resetProductForm();
+  renderProductTable();
+});
+
+$("pCancel").addEventListener("click", resetProductForm);
+
+$("prodTableBody").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+
+  var restockId = b.dataset.restock;
+  var editId = b.dataset.edit;
+  var delId = b.dataset.del;
+
+  if(restockId){
+    var item = DB.products.find(function(x){ return x.id === restockId; });
+    if(item){
+      item.stock += 10;
+      saveDB();
+      renderProductTable();
+      toast("+10 stock idinagdag sa " + item.name);
+    }
+  } else if(editId){
+    var target = DB.products.find(function(x){ return x.id === editId; });
+    if(target){
+      editingProductId = target.id;
+      $("pName").value = target.name;
+      $("pCat").value = target.category || "General";
+      $("pCost").value = target.cost != null ? target.cost : "";
+      $("pPrice").value = target.price;
+      $("pStock").value = target.stock;
+      $("pMin").value = target.min;
+      $("formTitle").textContent = "I-edit ang Paninda";
+      $("pSave").textContent = "Update Product";
+      $("pCancel").hidden = false;
+      $("pName").focus();
+    }
+  } else if(delId){
+    var dItem = DB.products.find(function(x){ return x.id === delId; });
+    if(dItem && confirm("Sigurado ka bang nais mong tanggalin ang \"" + dItem.name + "\"?")){
+      DB.products = DB.products.filter(function(x){ return x.id !== delId; });
+      delete cart[delId];
+      saveDB();
+      renderProductTable();
+      toast("Tinanggal ang paninda.");
+    }
+  }
+});
+
+/* UTANG / CREDIT LEDGER */
+function renderUtangTable(){
+  var list = DB.debts.slice().sort(function(a,b){ return b.balance - a.balance; });
+
+  if(!list.length){
+    $("utangTableBody").innerHTML = '<tr><td colspan="4" class="empty">Walang nakatalang may utang. Malinis ang ledger! 🎉</td></tr>';
+    return;
+  }
+
+  $("utangTableBody").innerHTML = list.map(function(d){
+    var dateFormatted = d.updated ? new Date(d.updated).toLocaleDateString("en-PH", {month:"short", day:"numeric"}) : "—";
+    var hasBalance = d.balance > 0;
+    return '<tr>' +
+      '<td><b>' + esc(d.customer) + '</b>' + (!hasBalance ? ' <span class="tag cash">Settled</span>' : '') + '</td>' +
+      '<td>' + dateFormatted + '</td>' +
+      '<td class="num"><b style="' + (hasBalance ? 'color:var(--red)' : 'color:var(--green)') + '">' + peso(d.balance) + '</b></td>' +
+      '<td class="num">' +
+        (hasBalance ? '<button class="btn success sm" data-payutang="' + d.id + '">Magbayad</button> ' : '') +
+        '<button class="btn del sm" data-deldebt="' + d.id + '">Bura</button>' +
+      '</td>' +
+    '</tr>';
+  }).join("");
+}
+
+$("btnNewUtangEntry").addEventListener("click", function(){
+  $("manUtangName").value = "";
+  $("manUtangAmount").value = "";
+  $("manUtangNote").value = "";
+  $("manualUtangModal").classList.add("open");
+});
+$("btnCloseManualUtang").addEventListener("click", function(){
+  $("manualUtangModal").classList.remove("open");
+});
+
+$("btnSaveManualUtang").addEventListener("click", function(){
+  var name = $("manUtangName").value.trim();
+  var amount = parseFloat($("manUtangAmount").value);
+  var note = $("manUtangNote").value.trim() || "Manual Utang";
+
+  if(!name || isNaN(amount) || amount <= 0){
+    toast("Pakilagay ang wastong pangalan at halaga!");
+    return;
+  }
+
+  var debtor = DB.debts.find(function(d){ return d.customer.toLowerCase() === name.toLowerCase(); });
+  if(!debtor){
+    debtor = { id: uid(), customer: name, balance: 0, updated: Date.now(), logs: [] };
+    DB.debts.push(debtor);
+  }
+
+  debtor.balance += amount;
+  debtor.updated = Date.now();
+  debtor.logs.push({
+    t: Date.now(),
+    type: "charge",
+    amount: amount,
+    note: note
+  });
+
+  saveDB();
+  $("manualUtangModal").classList.remove("open");
+  renderUtangTable();
+  toast("Naitala ang utang ni " + name);
+});
+
+$("utangTableBody").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+
+  var payId = b.dataset.payutang;
+  var delId = b.dataset.deldebt;
+
+  if(payId){
+    var debtor = DB.debts.find(function(d){ return d.id === payId; });
+    if(!debtor) return;
+    activeUtangDebtorId = debtor.id;
+    $("utangModalTitle").textContent = "Bayad ni " + debtor.customer;
+    $("utangModalDesc").textContent = "Kasalukuyang Utang: " + peso(debtor.balance);
+    $("utangPayAmount").value = debtor.balance;
+    $("utangPayModal").classList.add("open");
+  } else if(delId){
+    var target = DB.debts.find(function(d){ return d.id === delId; });
+    if(target && confirm("Tanggalin si " + target.customer + " sa listahan?")){
+      DB.debts = DB.debts.filter(function(d){ return d.id !== delId; });
+      saveDB();
+      renderUtangTable();
+      toast("Nabura sa ledger.");
+    }
+  }
+});
+
+$("btnCloseUtangModal").addEventListener("click", function(){
+  $("utangPayModal").classList.remove("open");
+});
+
+$("btnConfirmUtangPay").addEventListener("click", function(){
+  if(!activeUtangDebtorId) return;
+  var debtor = DB.debts.find(function(d){ return d.id === activeUtangDebtorId; });
+  if(!debtor) return;
+
+  var amt = parseFloat($("utangPayAmount").value);
+  if(isNaN(amt) || amt <= 0){
+    toast("Pakilagay ang wastong halaga ng bayad!");
+    return;
+  }
+
+  debtor.balance = Math.max(0, debtor.balance - amt);
+  debtor.updated = Date.now();
+  debtor.logs.push({
+    t: Date.now(),
+    type: "payment",
+    amount: amt,
+    note: "Bayad sa tindahan"
+  });
+
+  saveDB();
+  $("utangPayModal").classList.remove("open");
+  renderUtangTable();
+  toast("Naitala ang bayad na " + peso(amt) + " ni " + debtor.customer);
+});
+
+/* HISTORY TAB */
+function renderHistory(){
+  var q = ($("histSearch").value || "").trim().toLowerCase();
+  var payFilter = $("histFilterPay").value;
+
+  var list = DB.sales.slice().sort(function(a,b){ return b.t - a.t; });
+
+  if(payFilter){
+    list = list.filter(function(s){ return s.method === payFilter; });
+  }
+
+  if(q){
+    list = list.filter(function(s){
+      var matchId = s.id && s.id.toLowerCase().indexOf(q) > -1;
+      var matchCust = s.customer && s.customer.toLowerCase().indexOf(q) > -1;
+      var matchItem = s.items.some(function(i){ return i.name.toLowerCase().indexOf(q) > -1; });
+      return matchId || matchCust || matchItem;
+    });
+  }
+
+  var totalHistSales = list.reduce(function(acc, s){ return acc + s.total; }, 0);
+  $("histSum").textContent = "· " + list.length + " transactions (" + peso(totalHistSales) + ")";
+
+  if(!list.length){
+    $("histList").innerHTML = '<div class="empty">Walang benta na tumugma sa paghahanap.</div>';
+    return;
+  }
+
+  $("histList").innerHTML = list.map(function(s){
+    var dt = new Date(s.t).toLocaleString("en-PH", {
+      month:"short", day:"numeric", hour:"numeric", minute:"2-digit"
+    });
+    var itemsStr = s.items.map(function(i){ return esc(i.name) + " × " + i.qty; }).join(", ");
+    var tagClass = s.method === "Utang" ? "utang" : (s.method === "GCash" ? "gcash" : "cash");
+
+    return '<div class="list-item">' +
+      '<div style="flex:1">' +
+        '<div><b>' + dt + '</b> <span class="tag ' + tagClass + '">' + s.method + '</span>' +
+        (s.customer ? ' <span style="font-size:12px;color:var(--mute)">(' + esc(s.customer) + ')</span>' : '') +
+        '</div>' +
+        '<small style="color:var(--mute);display:block;margin:3px 0">' + itemsStr + '</small>' +
+        '<small style="color:var(--mute)">ID: ' + s.id + '</small>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<b style="font-size:16px">' + peso(s.total) + '</b><br>' +
+        '<div style="margin-top:6px;display:flex;gap:4px;justify-content:flex-end">' +
+          '<button class="btn ghost sm" data-viewrcpt="' + s.id + '">Resibo</button>' +
+          '<button class="btn del sm" data-void="' + s.id + '">Void</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+$("histSearch").addEventListener("input", renderHistory);
+$("histFilterPay").addEventListener("change", renderHistory);
+
+$("histList").addEventListener("click", function(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+
+  var voidId = b.dataset.void;
+  var viewId = b.dataset.viewrcpt;
+
+  if(viewId){
+    var sale = DB.sales.find(function(s){ return s.id === viewId; });
+    if(sale) openReceipt(sale);
+  } else if(voidId){
+    var target = DB.sales.find(function(s){ return s.id === voidId; });
+    if(!target) return;
+
+    if(confirm("Sigurado ka bang nais mong i-VOID ang resibong #" + target.id + " (" + peso(target.total) + ")?\nIbabalik ang mga produkto sa stock.")){
+      target.items.forEach(function(item){
+        var p = DB.products.find(function(x){ return x.id === item.id; });
+        if(p) p.stock += item.qty;
+      });
+
+      if(target.method === "Utang" && target.customer){
+        var debtor = DB.debts.find(function(d){ return d.customer.toLowerCase() === target.customer.toLowerCase(); });
+        if(debtor){
+          debtor.balance = Math.max(0, debtor.balance - target.total);
+          debtor.logs.push({
+            t: Date.now(),
+            type: "void",
+            amount: target.total,
+            note: "Voided sale #" + target.id
+          });
+        }
+      }
+
+      DB.sales = DB.sales.filter(function(s){ return s.id !== voidId; });
+      saveDB();
+      renderHistory();
+      toast("Na-void ang transaksyon at naibalik ang stock.");
+    }
+  }
+});
+
+/* SETTINGS & BACKUP */
+function initSettings(){
+  $("setStoreName").value = DB.store.name || "";
+  $("setStoreSub").value = DB.store.sub || "";
+  $("setStoreFooter").value = DB.store.footer || "";
+  $("shopTitleHeader").innerHTML = "🏪 " + esc(DB.store.name || "Tindahan") + " <small>Sari-Sari Store POS & Tracker</small>";
+}
+
+$("btnSaveStoreInfo").addEventListener("click", function(){
+  DB.store.name = $("setStoreName").value.trim() || "Tindahan";
+  DB.store.sub = $("setStoreSub").value.trim();
+  DB.store.footer = $("setStoreFooter").value.trim();
+  saveDB();
+  $("shopTitleHeader").innerHTML = "🏪 " + esc(DB.store.name) + " <small>Sari-Sari Store POS & Tracker</small>";
+  toast("Nai-save ang mga detalye ng tindahan!");
+});
+
+$("btnDownloadBackup").addEventListener("click", function(){
+  var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB, null, 2));
+  var a = document.createElement("a");
+  a.setAttribute("href", dataStr);
+  a.setAttribute("download", "tindahan-backup-" + dayKey(Date.now()) + ".json");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  toast("Na-download ang backup JSON file.");
+});
+
+$("importFileInput").addEventListener("change", function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+
+  var reader = new FileReader();
+  reader.onload = function(evt){
+    try {
+      var imported = JSON.parse(evt.target.result);
+      if(imported && imported.products && Array.isArray(imported.products)){
+        DB = imported;
+        saveDB();
+        initSettings();
+        renderView();
+        toast("Matagumpay na na-restore ang datos!");
+      } else {
+        alert("Hindi wastong format ng tindahan backup file.");
+      }
+    } catch(err){
+      alert("Error sa pagbasa ng JSON file: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+
+$("btnDownloadCSV").addEventListener("click", function(){
+  var rows = [["ID", "Name", "Category", "Cost", "Price", "Stock", "AlertMin"]];
+  DB.products.forEach(function(p){
+    rows.push([
+      p.id,
+      '"' + (p.name || "").replace(/"/g, '""') + '"',
+      '"' + (p.category || "General").replace(/"/g, '""') + '"',
+      p.cost || 0,
+      p.price || 0,
+      p.stock || 0,
+      p.min || 0
+    ]);
+  });
+  var csvContent = "data:text/csv;charset=utf-8," + rows.map(function(e){ return e.join(","); }).join("\n");
+  var link = document.createElement("a");
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", "tindahan-inventory-" + dayKey(Date.now()) + ".csv");
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+});
+
+$("btnExportSalesCSV").addEventListener("click", function(){
+  var rows = [["ReceiptID", "Date", "Items", "Total", "Paid", "Change", "Method", "Customer"]];
+  DB.sales.forEach(function(s){
+    var itemSummary = s.items.map(function(i){ return i.name + " (" + i.qty + "x" + i.price + ")"; }).join("; ");
+    rows.push([
+      s.id,
+      new Date(s.t).toISOString(),
+      '"' + itemSummary.replace(/"/g, '""') + '"',
+      s.total,
+      s.paid,
+      s.change || 0,
+      s.method,
+      '"' + (s.customer || "").replace(/"/g, '""') + '"'
+    ]);
+  });
+  var csvContent = "data:text/csv;charset=utf-8," + rows.map(function(e){ return e.join(","); }).join("\n");
+  var link = document.createElement("a");
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", "tindahan-sales-" + dayKey(Date.now()) + ".csv");
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+});
+
+$("btnResetData").addEventListener("click", function(){
+  if(confirm("Babala: Buburahin nito ang kasalukuyang benta at ibabalik sa demo seed data. Sigurado ka ba?")){
+    DB = seedData();
+    saveDB();
+    initSettings();
+    renderView();
+    toast("Naibalik sa demo data.");
+  }
+});
+
+/* CENTRAL RENDER DISPATCH */
+function renderView(){
+  if(!$("dash").hidden) renderDashboard();
+  if(!$("sale").hidden){
+    renderPosCategories();
+    renderPosGrid();
+    renderCart();
+  }
+  if(!$("prod").hidden) renderProductTable();
+  if(!$("utang").hidden) renderUtangTable();
+  if(!$("hist").hidden) renderHistory();
+  if(!$("sett").hidden) initSettings();
+}
+
+initSettings();
+renderDashboard();
+
+})();
+</script>
+</body>
+</html>
